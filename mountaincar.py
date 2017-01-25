@@ -163,11 +163,22 @@ class MountainCarViewer():
         assert isinstance(mountain_car, MountainCar), \
                 'Argument to MoutainCarViewer() must be a MountainCar instance'
         self.mountain_car = mountain_car
+        
+        
+    def _get_values(self):
+        """Retrieve the relevant car variables for the figure.
+        """
+        self.times[self.i] = self.mountain_car.t
+        self.positions[self.i,0] = self.mountain_car.x
+        self.positions[self.i,1] = self.mountain_car.x_d
+        self.forces[self.i] = self.mountain_car.F
+        self.energies[self.i] = self.mountain_car._energy(
+            self.mountain_car.x, self.mountain_car.x_d)
 
-    def create_figure(self, n_steps, max_time, f = None):
+    def create_figure(self, n_steps, max_time, f=None):
         """Create a figure showing the progression of the car.
         
-        Call update_car_state susequently to update this figure.
+        Call update_figure() susequently to update this figure.
 
         Parameters:
         -----------
@@ -228,16 +239,82 @@ class MountainCarViewer():
         self._plot_forces(self.h_forces)
         self._plot_energy(self.h_energies)
 
-    def _get_values(self):
-        """Retrieve the relevant car variables for the figure.
+    def _plot_positions(self, handles=None):
+        """plot the position and trajectory of the car in state space.
         """
-        self.times[self.i] = self.mountain_car.t
-        self.positions[self.i,0] = self.mountain_car.x
-        self.positions[self.i,1] = self.mountain_car.x_d
-        self.forces[self.i] = self.mountain_car.F
-        self.energies[self.i] = self.mountain_car._energy(
-            self.mountain_car.x, self.mountain_car.x_d)
 
+        # choose the color of the point according to the force direction
+        color = ['r', 'w', 'g'][1 + int(np.sign(self.mountain_car.F))]
+
+        if handles is None:
+            # create the plots
+            handles = [] # keep the plot objects in this list
+            handles.append(plb.plot(
+                np.atleast_1d(self.positions[:self.i+1,0]),
+                np.atleast_1d(self.positions[:self.i+1,1]),
+                ',k'
+            )[0])
+            handles.append(plb.plot(
+                np.atleast_1d(self.positions[self.i,0]),
+                np.atleast_1d(self.positions[self.i,1]),
+                'o' + color,
+                markeredgecolor = 'none',
+                markersize = 9,                
+            )[0])
+            handles.append(plb.title("Mountain Car: state, force, energy"))
+            return tuple(handles)
+        else:
+            # update the plots
+            handles[0].set_xdata(np.atleast_1d(self.positions[:self.i+1,0]))
+            handles[0].set_ydata(np.atleast_1d(self.positions[:self.i+1,1]))
+            handles[1].set_xdata(np.atleast_1d(self.positions[self.i,0]))
+            handles[1].set_ydata(np.atleast_1d(self.positions[self.i,1]))
+            handles[1].set_color(color)
+            return handles
+
+    def _plot_forces(self, handle = None):
+        """plot the force applied by the car vs time.
+        """
+        # create the plots
+        if handle is None:
+            handle = plb.plot(
+                np.atleast_1d(self.times[:self.i+1]),
+                np.atleast_1d(self.forces[:self.i+1]),
+                ',k',
+                linewidth = 1,
+                markersize = 2
+            )[0]
+
+            plb.xlabel('$t$')
+            plb.ylabel('$F$')
+            return handle
+        else:
+            # update the plot
+            handle.set_xdata(np.atleast_1d(self.times[:self.i+1]))
+            handle.set_ydata(np.atleast_1d(self.forces[:self.i+1]))
+            return handle
+
+    def _plot_energy(self, handle = None):
+        """plot the energy of the car vs time.
+        """
+        # create the plots
+        if handle is None:
+            handle = plb.plot(
+                np.atleast_1d(self.times[:self.i+1]),
+                np.atleast_1d(self.energies[:self.i+1]),
+                'k',
+                linewidth = 1
+            )[0]
+
+            plb.xlabel('$t$')
+            plb.ylabel('$E$')
+            return handle
+        else:
+            # update the plot
+            handle.set_xdata(np.atleast_1d(self.times[:self.i+1]))
+            handle.set_ydata(np.atleast_1d(self.energies[:self.i+1]))
+            return handle
+            
     def _plot_energy_landscape(self, ax = None):
         """plot the energy landscape for the mountain car in 2D.
 
@@ -265,76 +342,3 @@ class MountainCarViewer():
         cbar.set_label('$E$')
 
         return ax
-
-    def _plot_positions(self, handles = None):
-        """plot the position and trajectory of the car in state space.
-        """
-
-        # choose the color of the point according to the force direction
-        color = ['r', 'w', 'g'][1 + int(np.sign(self.mountain_car.F))]
-
-        if handles is None:
-            # create the plots
-            handles = [] # keep the plot objects in this list
-            handles.append(plb.plot(
-                np.atleast_1d(self.positions[:self.i+1,0]),
-                np.atleast_1d(self.positions[:self.i+1,1]),
-                ',k'
-            )[0])
-            handles.append(plb.plot(
-                np.atleast_1d(self.positions[self.i,0]),
-                np.atleast_1d(self.positions[self.i,1]),
-                'o' + color,
-                markeredgecolor = 'none',
-                markersize = 9,                
-            )[0])
-            return tuple(handles)
-        else:
-            # update the plots
-            handles[0].set_xdata(np.atleast_1d(self.positions[:self.i+1,0]))
-            handles[0].set_ydata(np.atleast_1d(self.positions[:self.i+1,1]))
-            handles[1].set_xdata(np.atleast_1d(self.positions[self.i,0]))
-            handles[1].set_ydata(np.atleast_1d(self.positions[self.i,1]))
-            handles[1].set_color(color)
-            return handles
-
-    def _plot_forces(self, handle = None):
-        """plot the force applied by the car vs time.
-        """
-        # create the plots
-        if handle is None:
-            handle = plb.plot(
-                np.atleast_1d(self.times[:self.i+1]),
-                np.atleast_1d(self.forces[:self.i+1]),
-                ',k',
-            )[0]
-
-            plb.xlabel('$t$')
-            plb.ylabel('$F$')
-            return handle
-        else:
-            # update the plot
-            handle.set_xdata(np.atleast_1d(self.times[:self.i+1]))
-            handle.set_ydata(np.atleast_1d(self.forces[:self.i+1]))
-            return handle
-
-    def _plot_energy(self, handle = None):
-        """plot the energy of the car vs time.
-        """
-        # create the plots
-        if handle is None:
-            handle = plb.plot(
-                np.atleast_1d(self.times[:self.i+1]),
-                np.atleast_1d(self.energies[:self.i+1]),
-                'k',
-                linewidth = 0.5
-            )[0]
-
-            plb.xlabel('$t$')
-            plb.ylabel('$E$')
-            return handle
-        else:
-            # update the plot
-            handle.set_xdata(np.atleast_1d(self.times[:self.i+1]))
-            handle.set_ydata(np.atleast_1d(self.energies[:self.i+1]))
-            return handle

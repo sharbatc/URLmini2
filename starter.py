@@ -17,7 +17,7 @@ class DummyAgent(): #name to be changed later
 
         self.parameter1 = parameter1
 
-    def visualize_trial(self, n_steps = 200):
+    def visualize_trial(self, n_steps=50):
         """Do a trial without learning, with display.
 
         Parameters
@@ -30,6 +30,8 @@ class DummyAgent(): #name to be changed later
         mv = mountaincar.MountainCarViewer(self.mountain_car)
         mv.create_figure(n_steps, n_steps)
         plb.draw()
+        plb.show()
+        plb.pause(1e-7)
             
         # make sure the mountain-car is reset
         self.mountain_car.reset()
@@ -50,12 +52,18 @@ class DummyAgent(): #name to be changed later
 
             # update the visualization
             mv.update_figure()
-            plb.draw()            
+            plb.draw()
+            plb.show()
+            plb.pause(1e-7)
             
             # check for rewards
             if self.mountain_car.R > 0.0:
                 print ("\rreward obtained at t = ", self.mountain_car.t)
                 break
+                
+        plb.draw()
+        plb.show()
+        plb.waitforbuttonpress(timeout=3)
 
     def softmax_policy(self,Q, temperature):
         Pa1 = np.exp(Q[(mc.x,mc.x_d),a]/temperature)
