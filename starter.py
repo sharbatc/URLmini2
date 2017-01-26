@@ -7,6 +7,7 @@ import numpy as np
 import sys
 import pylab as plb
 import mountaincar
+from figures import plot_escape_time
 
 
 class Agent():
@@ -141,7 +142,7 @@ class Agent():
     def episodes(self, max_episodes=100,
                  n_steps=3000, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xdot_size=10, visualize=True,
                  w_ini=0):
-        """ Runs multiple episodes with 1 agent
+        """ Runs multiple episodes with 1 agent and plots escape time
         :param max_episodes: ...
         :param n_step, lambda_, tau, eta, x_size, xdot_size, visualize: params of learn()
         :param w_ini: initial weight "distribution"
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     x_sizes = [10]#[10, 20]
     xdot_sizes = [10]#[10, 20]
     w_inis = [0]#[0, 1]
-    taus = [0.05]#[0, 1, 1e10]
+    taus = [0.05]#[1e-10, 1, 1e10]
     lambdas = [0.95]#[0, 0.95]
     
     for x_size in x_sizes:
@@ -178,15 +179,16 @@ if __name__ == "__main__":
             for w_ini in w_inis:
                 for tau in taus:
                     for lambda_ in lambdas:
-                        print("x_size:%s, xdot_size:%s, w_ini:%s, tau:%f, lambda:%f"%(x_size, xdot_size, w_ini, tau, lambda_))
+                        print("x_size:%s, xdot_size:%s, w_ini:%s, tau:%.3f, lambda:%.3f"%(x_size, xdot_size, w_ini, tau, lambda_))
                         a = Agent()
-                        escape_times = a.episodes(max_episodes=100, n_steps=5000,
+                        escape_times = a.episodes(max_episodes=10, n_steps=3000,
                                                 lambda_=lambda_, tau=tau, eta=eta,
                                                 x_size=x_size, xdot_size=xdot_size,
                                                 visualize=False,
                                                 w_ini=w_ini)
     
                         print("Escape times:", escape_times)
+                        plot_escape_time(escape_times, tau, lambda_, x_size, xdot_size, w_ini)
                                      
     print("##### Terminated #####")
                
