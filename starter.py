@@ -36,7 +36,7 @@ class DummyAgent(): #name to be changed later
         
         return [Pa1/P_tot, Pa2/P_tot, Pa3/P_tot]
         
-    def learn(self, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, visualize=True):
+    def learn(self, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, w_ini=0, visualize=True):
         """We will look to implement the Sarsa(lambda) algorithm pseudocode Fig 7.11"""
         
         if visualize:       
@@ -57,27 +57,17 @@ class DummyAgent(): #name to be changed later
 
         # weight dictionary matrix
         w = {}
-        w_ini = 0  # this should be a parameter
         for a in np.arange(0,a_size,1):
             for x in np.arange(0,x_size,1):
                 for x_d in np.arange(0,xdot_size,1):
-                    w[a,x,x_d] = w_ini
-        """
-        # dictionary for storing Q-values
-        Q = {} 
-        for x in np.arange(0,x_size,1):
-            for x_d in np.arange(0,xdot_size,1):
-                for a in np.arange(0,a_size,1):
-                    Q[x,x_d,a] = 0
-        """            
-         
-
+                    w[a,x,x_d] = w_ini          
+       
         # dictionary for storing e-values
         e = {} 
-        for x in np.arange(0,x_size,1):
-            for x_d in np.arange(0,xdot_size,1):
-                for a in np.arange(0,a_size,1):
-                    e[x,x_d,a] = 0
+        for a in np.arange(0,a_size,1):
+            for x in np.arange(0,x_size,1):
+                for x_d in np.arange(0,xdot_size,1):
+                    e[a,x,x_d] = 0
 
         # ============================ core SARSA(lambda) algo ============================
 
@@ -102,7 +92,7 @@ class DummyAgent(): #name to be changed later
                 w[keys] += eta*delta*e[keys]
                 e[keys] = gamma*delta*e[keys]
 
-            e[(x_old,x_d_old,a_old)] += 1
+            e[(a_old,x_old,x_d_old)] += 1
             x_old = mc.x
             x_d_old = mc.x_d
             a_old = a_selected
@@ -126,12 +116,12 @@ class DummyAgent(): #name to be changed later
             plb.show()
             plb.waitforbuttonpress(timeout=3)
 
-    def episodes(self, max_episodes=100, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01):
+    def episodes(self, max_episodes=100, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, w_ini=0):
         """run multiple episodes with 1 agent"""
 
         for n in range(max_episodes):
             print('\repisode =', n)           
-            self.learn(n_steps, lambda_, tau, eta)
+            self.learn(n_steps, lambda_, tau, eta, w_ini)
 
 
 if __name__ == "__main__":
