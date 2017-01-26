@@ -23,8 +23,8 @@ class DummyAgent(): #name to be changed later
     def calculate_Q(self, x, xd, a, w, sigmax, sigmay):
         sum = 0
         for keys,weight in w.items():
-            if keys[2]==a:
-                sum += weight*self.calculate_r(keys[0], keys[1], keys[2], x, xd, sigmax, sigmay)  # keys = (xj, xdj, a) but can't pass as tuple
+            if keys[0]==a:
+                sum += weight*self.calculate_r(keys[1], keys[2], keys[0], x, xd, sigmax, sigmay)  # keys = (a, xj, xdj, a) but can't pass as tuple
 
         return sum
         
@@ -76,6 +76,7 @@ class DummyAgent(): #name to be changed later
         x_old = self.mc.x
         x_d_old = self.mc.x_d
         a_old = np.random.randint(0,3,1)[0]
+        e_old = 0
 
         # run untill it gets the reward
         for i in range(n_steps):
@@ -86,16 +87,20 @@ class DummyAgent(): #name to be changed later
             p = self.softmax_policy(w, tau, sigmax, sigmay)
             a_selected = np.random.choice([0,1,2],1,p)[0]
 
-            delta = self.mc.R + gamma*self.calculate_Q(self.mc.x, self.mc.x_d, a, w, sigmax, sigmay) - self.calculate_Q(x_old, x_d_old, a, w, sigmax, sigmay)            
+            delta = self.mc.R + gamma*self.calculate_Q(self.mc.x, self.mc.x_d, a, w, sigmax, sigmay) - self.calculate_Q(x_old, x_d_old, a, w, sigmax, sigmay)
+            
+            for keys,_ in w.items():                               
+                e = gamma*delta*e_old
+                if keys[0]==a:
+                    r_j = self.calculate_r(keys[1], keys[2], keys[0], self.mc.x, self.mc.x_d, sigmax, sigmay)  # keys = (a, xj, xdj, a) but can't pass as tuple
+                    e += e + r_j
+                # finally update weights !
+                w[keys] += eta*delta*e
 
-            for keys,_ in w.items():
-                w[keys] += eta*delta*e[keys]
-                e[keys] = gamma*delta*e[keys]
-
-            e[(a_old,x_old,x_d_old)] += 1
-            x_old = mc.x
-            x_d_old = mc.x_d
+            x_old = self.mc.x
+            x_d_old = self.mc.x_d
             a_old = a_selected
+            e_old = e
             
         # ============================ core SARSA(lambda) algo ============================
             
@@ -114,19 +119,20 @@ class DummyAgent(): #name to be changed later
         if visualize:       
             plb.draw()
             plb.show()
-            plb.waitforbuttonpress(timeout=3)
+            #plb.waitforbuttonpress(timeout=3)
+            plb.close('all')
 
-    def episodes(self, max_episodes=100, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, w_ini=0):
+    def episodes(self, max_episodes=100, n_steps=500, lambda_=0.95, tau=0.05, eta=0.01, w_ini=0, visualize=True):
         """run multiple episodes with 1 agent"""
 
         for n in range(max_episodes):
             print('\repisode =', n)           
-            self.learn(n_steps, lambda_, tau, eta, w_ini)
+            self.learn(n_steps, lambda_, tau, eta, w_ini, visualize)
 
 
 if __name__ == "__main__":
     d = DummyAgent()
-    d.episodes()
+    d.episodes(visualize=False)
     
     
     
