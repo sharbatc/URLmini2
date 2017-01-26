@@ -13,7 +13,7 @@ from figures import plot_escape_time
 class Agent():
     """ A very clever agent for the mountain-car task """
 
-    def __init__(self, x_size, xd_size, w_ini, mc=None, parameter1=3.0, w=None): #unchanged from given
+    def __init__(self, x_size, xd_size, w_ini, mc=None, parameter1=3.0, weights=None): #unchanged from given
         
         if mc is None:
             self.mc = mountaincar.MountainCar()
@@ -25,47 +25,45 @@ class Agent():
         self.x_centers, self.sigmax = np.linspace(-150, 30, num=x_size, endpoint=True, retstep=True)
         self.xd_centers, self.sigmay = np.linspace(-15, 15, num=xd_size, endpoint=True, retstep=True)
         
-        if w is None:
+        if weights is None:
             a_size = 3
             # weight dictionary matrix (dim:x_size*xd_size*a_size)
-            self.w = {}
+            self.weights = {}
             for a in np.arange(0, a_size):
                 for x in self.x_centers:
                     for x_d in self.xd_centers:
-                        self.w[a, x, x_d] = w_ini
+                        self.weights[a, x, x_d] = w_ini
         else:
-            self.w = w
+            self.weights = weights
         
-    def calculate_r(self, xj, xdj, x, xd):
+    def calculate_r(self, xj, xdj):
         """ Calculates firing rate of the input layer neurons, based on state of the agent
         :param xj,xdj: ids/place of the current neuron
-        :param x, xd: current state of the car
         return: firing rate of the neuron
         """
-        return np.exp(-((xj-x)**2/self.sigmax**2) - ((xdj-xd)**2/self.sigmay**2))
+        return np.exp(-((xj-self.mc.x)**2/self.sigmax**2) - ((xdj-self.mc.x_d)**2/self.sigmay**2))
         
-    def calculate_Q(self, x, xd, a):
+    def calculate_Q(self, a):
         """ Calculates Q(s,a)
-        :param x, xd, a: state + action
-        return: Q(s,a) as sum(w*rate)
+        :param a: action
+        return: Q(s,a) as sum(weights*rates)
         """
         sum = 0
-        for key, weight in self.w.items():
+        for key, weight in self.weights.items():
             if key[0] == a:
-                sum += weight*self.calculate_r(key[1], key[2], x, xd)  # key = (a, xj, xdj)
+                sum += weight*self.calculate_r(key[1], key[2])  # key = (a, xj, xdj)
 
         return sum
         
     def softmax_policy(self, tau):
         """ Calculates probabilities based on Boltzmann distribution
         :param tau: temperature parameter of Boltzmann distribution (exploration vs. exploration)
-        :param sigmax, sigmay: params of calculate_r
         return: dict of Q values, list of probabilities (for the 3 possible actions)
         """
         Qs = {}  # dict just to store calculated Q-values and speed up the code
-        Qs[0] = self.calculate_Q(self.mc.x, self.mc.x_d, 0)
-        Qs[1] = self.calculate_Q(self.mc.x, self.mc.x_d, 1)
-        Qs[2] = self.calculate_Q(self.mc.x, self.mc.x_d, 2)
+        Qs[0] = self.calculate_Q(0)
+        Qs[1] = self.calculate_Q(1)
+        Qs[2] = self.calculate_Q(2)
         Pa0 = np.exp(Qs[0] / tau)
         Pa1 = np.exp(Qs[1] / tau)
         Pa2 = np.exp(Qs[2] / tau)
@@ -106,7 +104,7 @@ class Agent():
         # init
         self.mc.reset()
         a_old = np.random.randint(0,3,1)[0]  # gives 0 or 1 or 2 -> random action at the 1st step
-        Q_old = self.calculate_Q(self.mc.x, self.mc.x_d, a_old)
+        Q_old = self.calculate_Q(a_old)
 
         # run untill it gets the reward
         for i in range(n_steps):
@@ -122,13 +120,13 @@ class Agent():
             delta = self.mc.R - Q_old + gamma*Q
             
             # update e and w
-            for key, weight in self.w.items():                         
-                e[key] *= gamma * lambda_  # e and w has the same keys, so it should work ...
+            for key, _ in e.items():                         
+                e[key] *= gamma * lambda_
                 if key[0] == a_selected:
-                    r = self.calculate_r(key[1], key[2], self.mc.x, self.mc.x_d)  # key = (a, xj, xdj)
+                    r = self.calculate_r(key[1], key[2])  # key = (a, xj, xdj)
                     e[key] += r
                 # finally update weights !
-                weight += eta * delta * e[key]
+                self.weights[key] += eta * delta * e[key]
 
             a_old = a_selected
             Q_old = Q
@@ -149,12 +147,15 @@ class Agent():
                 
         if visualize:       
             plb.close('all')
-            
+        
+        """
         # kind of debigging tool ...
         print("some random e-values:", e[2,-50.,-15.], e[2,-90.,5.], e[0,-110.,5.], e[1,-110.,5.], e[2,-110.,5.],
               e[1,-130.,5.], e[0,-50.,-15.], e[0,-70.,5.], e[1,-70.,15.], e[2,-70.,15.])
-        print("corresponding weights:", self.w[2,-50.,-15.], self.w[2,-90.,5.], self.w[0,-110.,5.], self.w[1,-110.,5.], self.w[2,-110.,5.],
-              self.w[1,-130.,5.], self.w[0,-50.,-15.], self.w[0,-70.,5.], self.w[1,-70.,15.], self.w[2,-70.,15.])
+        print("corresponding weights:", self.weights[2,-50.,-15.], self.weights[2,-90.,5.], self.weights[0,-110.,5.],
+                                        self.weights[1,-110.,5.], self.weights[2,-110.,5.], self.weights[1,-130.,5.],
+                                        self.weights[0,-50.,-15.], self.weights[0,-70.,5.], self.weights[1,-70.,15.], self.weights[2,-70.,15.])
+        """
             
         return self.mc.t
 
@@ -168,7 +169,7 @@ class Agent():
         esc_ts = []  # list to store escape times
         for n in range(max_episodes):
             print("episode:%s"%n)           
-            t = self.learn(n_steps, lambda_, tau, eta, visualize)  # updates self.w based on SARSA rule
+            t = self.learn(n_steps, lambda_, tau, eta, visualize)  # updates self.weights based on SARSA rule
             esc_ts.append(t)
             
         return esc_ts
@@ -178,7 +179,7 @@ if __name__ == "__main__":
     eta = 0.01
     x_sizes = [10.]#[10., 20.]
     xd_sizes = [10.]#[10., 20.]
-    w_inis = [0.]#[0., 1.]
+    w_inis = [0., 1.]#[0., 1.]
     taus = [0.001]#[1e-5, 1., 100.]
     lambdas = [0.95]#[0, 0.95]
     
@@ -188,6 +189,7 @@ if __name__ == "__main__":
                 for tau in taus:
                     for lambda_ in lambdas:
                         print("x_size:%s, xd_size:%s, w_ini:%s, tau:%.5f, lambda:%.2f"%(x_size, xd_size, w_ini, tau, lambda_))
+                        
                         a = Agent(x_size=x_size, xd_size=xd_size, w_ini=w_ini)
                         escape_times = a.episodes(max_episodes=250, n_steps=5000,
                                                 lambda_=lambda_, tau=tau, eta=eta,
