@@ -22,15 +22,14 @@ class Agent():
 
         self.parameter1 = parameter1
         
-    def calculate_r(self, xj, xdj, a, x, xd, sigmax, sigmay):
+    def calculate_r(self, xj, xdj, x, xd, sigmax, sigmay):
         """ Calculates firing rate of the input layer neurons, based on state of the agent
-        :param xj,xdj: ids of the current neuron
+        :param xj,xdj: ids/place of the current neuron
         :param x, xd: current state of the car
-        :param a: action taken
         :param sigmax, sigmay: params of the (Gaussian) basis function, based on the grid size
         return: firing rate of the neuron
         """
-        return np.exp(-((xj-x)/sigmax)**2 - ((xdj-xd)/sigmay)**2)
+        return np.exp(-((xj-x)**2/sigmax**2) - ((xdj-xd)**2/sigmay**2))
         
     def calculate_Q(self, x, xd, a, w, sigmax, sigmay):
         """ Calculates Q(s,a)
@@ -40,9 +39,9 @@ class Agent():
         return: Q(s,a) as sum(w*rate)
         """
         sum = 0
-        for keys,weight in w.items():
-            if keys[0]==a:
-                sum += weight*self.calculate_r(keys[1], keys[2], keys[0], x, xd, sigmax, sigmay)  # keys = (a, xj, xdj, a) but can't pass as tuple
+        for key, weight in w.items():
+            if key[0] == a:
+                sum += weight*self.calculate_r(key[1], key[2], x, xd, sigmax, sigmay)  # key = (a, xj, xdj)
 
         return sum
         
@@ -51,28 +50,33 @@ class Agent():
         :param w: synaptic weights (stored in a dictionary... maybe a matrix would be faster)
         :param tau: temperature parameter of Boltzmann distribution (exploration vs. exploration)
         :param sigmax, sigmay: params of calculate_r
-        return: list of probabilities (for the 3 possible actions)
+        return: dict of Q values, list of probabilities (for the 3 possible actions)
         """
-        Pa1 = np.exp(self.calculate_Q(self.mc.x, self.mc.x_d, 0, w, sigmax, sigmay) / tau)
-        Pa2 = np.exp(self.calculate_Q(self.mc.x, self.mc.x_d, 1, w, sigmax, sigmay) / tau)
-        Pa3 = np.exp(self.calculate_Q(self.mc.x, self.mc.x_d, 2, w, sigmax, sigmay) / tau)
-        P_tot = Pa1 + Pa2 + Pa3
+        Qs = {}  # dict just to store calculated Q-values and speed up the code
+        Qs[0] = self.calculate_Q(self.mc.x, self.mc.x_d, 0, w, sigmax, sigmay)
+        Qs[1] = self.calculate_Q(self.mc.x, self.mc.x_d, 1, w, sigmax, sigmay)
+        Qs[2] = self.calculate_Q(self.mc.x, self.mc.x_d, 2, w, sigmax, sigmay)
+        Pa0 = np.exp(Qs[0] / tau)
+        Pa1 = np.exp(Qs[1] / tau)
+        Pa2 = np.exp(Qs[2] / tau)
+        P_tot = Pa0 + Pa1 + Pa2
         
-        return [Pa1/P_tot, Pa2/P_tot, Pa3/P_tot]
+        return Q, [Pa0/P_tot, Pa1/P_tot, Pa2/P_tot]
         
-    def learn(self, w, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xdot_size=10, visualize=True):
+    def learn(self, w, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xd_size=10, visualize=True):
         """ SARSA(lambda) implementation (with softmax policy)
         :param w: weights (dictionary) at the beginning of the episode (first time initialized in episodes())
         :param n_step: max steps before termination (or it breaks if it reaches the reward)
         :param lambda_: decaying rate for eligibility trace
         :param tau: param of softmax_policy
         :param eta: learning rate
-        :param x_size, xdot_size: discretization of the state place
+        :param x_size, xd_size: discretization of the state place
         :param visualize: set to True for step-by-step visualization of the learning process
         """
         
-        sigmax = 180/x_size
-        sigmay = 30/xdot_size
+        # these are also calculated in episodes() ... here we recalculate it in order to pass 2 less parameters xD
+        x_centers, sigmax = np.linspace(-150, 30, num=x_size, endpoint=True, retstep=True)
+        xd_centers, sigmay = np.linspace(-15, 15, num=xd_size, endpoint=True, retstep=True)
         gamma = 0.95  # based on the description of the project
         
         if visualize:       
@@ -82,7 +86,15 @@ class Agent():
             mv.create_figure(n_steps, n_steps)
             plb.draw()
             plb.show()
-            plb.pause(1e-7)         
+            plb.pause(1e-7)
+            
+        a_size = 3
+        # e dictionary matrix (dim:x_size*xd_size*a_size)
+        e = {}
+        for a in np.arange(0, a_size):
+            for x in x_centers:
+                for x_d in xd_centers:
+                    e[a, x, x_d] = 0.    
 
         # ============================ core SARSA(lambda) algo ============================
 
@@ -90,33 +102,36 @@ class Agent():
         self.mc.reset()
         x_old = self.mc.x
         x_d_old = self.mc.x_d
-        a_old = np.random.randint(0,3,1)[0]
-        e_old = 0
+        a_old = np.random.randint(0,3,1)[0]  # gives 0 or 1 or 2 -> random action at the 1st step
+        Q_old = self.calculate_Q(x_old, x_d_old, a_old, w, sigmax, sigmay)
 
         # run untill it gets the reward
         for i in range(n_steps):
-            self.mc.apply_force(a_old-1)
-            self.mc.simulate_timesteps(100, 0.01) #take action a, observe
-
+            self.mc.apply_force(a_old-1)  # scale [0,2] to [-1,1]
+            self.mc.simulate_timesteps(100, 0.01)  # take action a and go to an other state
+            
             #choose new action according to softmax policy
-            p = self.softmax_policy(w, tau, sigmax, sigmay)
+            Qs, p = self.softmax_policy(w, tau, sigmax, sigmay)
             a_selected = np.random.choice([0,1,2],1,p)[0]
 
-            delta_t = self.mc.R + gamma*self.calculate_Q(self.mc.x, self.mc.x_d, a, w, sigmax, sigmay) - self.calculate_Q(x_old, x_d_old, a, w, sigmax, sigmay)
+            # calculate delta
+            Q = Qs[a_selected]
+            delta = self.mc.R - Q_old + gamma*Q
             
-            for keys,_ in w.items():                               
-                e = gamma*lambda_*delta_t*e_old
-                if keys[0]==a:
-                    r_j = self.calculate_r(keys[1], keys[2], keys[0], self.mc.x, self.mc.x_d, sigmax, sigmay)  # keys = (a, xj, xdj, a) but can't pass as tuple
-                    e += e + r_j
+            # update e and w
+            for key, weight in w.items():                         
+                e[key] *= gamma * lambda_  # e and w has the same keys, so it should work ...
+                if key[0] == a_selected:
+                    r = self.calculate_r(key[1], key[2], self.mc.x, self.mc.x_d, sigmax, sigmay)  # key = (a, xj, xdj)
+                    e[key] += r
                 # finally update weights !
-                w[keys] += eta*delta_t*e
+                weight += eta * delta * e[key]
 
-            x_old = self.mc.x
-            x_d_old = self.mc.x_d
             a_old = a_selected
-            e_old = e
-            
+            Q_old = Q
+            #x_old = self.mc.x
+            #x_d_old = self.mc.x_d
+
         # ============================ core SARSA(lambda) algo ============================
             
             if visualize:          
@@ -139,27 +154,30 @@ class Agent():
             
         return w, self.mc.t
 
-    def episodes(self, max_episodes=100,
-                 n_steps=3000, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xdot_size=10, visualize=True,
-                 w_ini=0):
+    def episodes(self, max_episodes=250,
+                 n_steps=5000, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xd_size=10, visualize=True,
+                 w_ini=0.):
         """ Runs multiple episodes with 1 agent and plots escape time
         :param max_episodes: ...
-        :param n_step, lambda_, tau, eta, x_size, xdot_size, visualize: params of learn()
+        :param n_step, lambda_, tau, eta, x_size, xd_size, visualize: params of learn()
         :param w_ini: initial weight "distribution"
         """
         
+        x_centers, sigmax = np.linspace(-150, 30, num=x_size, endpoint=True, retstep=True)
+        xd_centers, sigmay = np.linspace(-15, 15, num=xd_size, endpoint=True, retstep=True)
+        
         a_size = 3
-        # weight dictionary matrix (dim:x_size*xdot_size*a_size)
+        # weight dictionary matrix (dim:x_size*xd_size*a_size)
         w = {}
         for a in np.arange(0, a_size):
-            for x in np.arange(0, x_size):
-                for x_d in np.arange(0, xdot_size):
+            for x in x_centers:
+                for x_d in xd_centers:
                     w[a, x, x_d] = w_ini
 
         esc_ts = []  # list to store escape times
         for n in range(max_episodes):
-            print('\repisode =', n)           
-            w_new, t = self.learn(w, n_steps, lambda_, tau, eta, x_size, xdot_size, visualize)
+            print("episode:%s"%n)           
+            w_new, t = self.learn(w, n_steps, lambda_, tau, eta, x_size, xd_size, visualize)
             w = w_new  # just to make sure ...
             esc_ts.append(t)
             
@@ -168,27 +186,27 @@ class Agent():
 
 if __name__ == "__main__":
     eta = 0.01
-    x_sizes = [10]#[10, 20]
-    xdot_sizes = [10]#[10, 20]
-    w_inis = [0]#[0, 1]
-    taus = [0.05]#[1e-10, 1, 1e10]
+    x_sizes = [10.]#[10., 20.]
+    xd_sizes = [10.]#[10., 20.]
+    w_inis = [0., 1.]#[0., 1.]
+    taus = [0.001]#[1e-5, 1., 100.]
     lambdas = [0.95]#[0, 0.95]
     
     for x_size in x_sizes:
-        for xdot_size in xdot_sizes:
+        for xd_size in xd_sizes:
             for w_ini in w_inis:
                 for tau in taus:
                     for lambda_ in lambdas:
-                        print("x_size:%s, xdot_size:%s, w_ini:%s, tau:%.3f, lambda:%.3f"%(x_size, xdot_size, w_ini, tau, lambda_))
+                        print("x_size:%s, xd_size:%s, w_ini:%s, tau:%.5f, lambda:%.2f"%(x_size, xd_size, w_ini, tau, lambda_))
                         a = Agent()
-                        escape_times = a.episodes(max_episodes=10, n_steps=3000,
+                        escape_times = a.episodes(max_episodes=250, n_steps=5000,
                                                 lambda_=lambda_, tau=tau, eta=eta,
-                                                x_size=x_size, xdot_size=xdot_size,
+                                                x_size=x_size, xd_size=xd_size,
                                                 visualize=False,
                                                 w_ini=w_ini)
     
                         print("Escape times:", escape_times)
-                        plot_escape_time(escape_times, tau, lambda_, x_size, xdot_size, w_ini)
+                        plot_escape_time(escape_times, tau, lambda_, x_size, xd_size, w_ini)
                                      
     print("##### Terminated #####")
                
