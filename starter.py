@@ -1,8 +1,13 @@
-import sys
+"""
+U&RL: Miniproject2 - Mountain Car problem "solved" with cont. state SARSA(lambda) algo
+Authors: Andras Ecker, Sharbatanu Chatterjee
+"""
 
-import pylab as plb
 import numpy as np
+import sys
+import pylab as plb
 import mountaincar
+
 
 class Agent():
     """ A very clever agent for the mountain-car task """
@@ -54,20 +59,19 @@ class Agent():
         
         return [Pa1/P_tot, Pa2/P_tot, Pa3/P_tot]
         
-    def learn(self, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, w_ini=0, x_size=10, xdot_size=10, visualize=True):
+    def learn(self, w, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xdot_size=10, visualize=True):
         """ SARSA(lambda) implementation (with softmax policy)
+        :param w: weights (dictionary) at the beginning of the episode (first time initialized in episodes())
         :param n_step: max steps before termination (or it breaks if it reaches the reward)
         :param lambda_: decaying rate for eligibility trace
         :param tau: param of softmax_policy
         :param eta: learning rate
-        :param w_ini: initial weights
         :param x_size, xdot_size: discretization of the state place
         :param visualize: set to True for step-by-step visualization of the learning process
         """
         
         sigmax = 180/x_size
         sigmay = 30/xdot_size
-        a_size = 3  # 3 possible actions
         gamma = 0.95  # based on the description of the project
         
         if visualize:       
@@ -77,14 +81,7 @@ class Agent():
             mv.create_figure(n_steps, n_steps)
             plb.draw()
             plb.show()
-            plb.pause(1e-7)
-
-        # weight dictionary matrix (dim:x_size*xdot_size*a_size)
-        w = {}
-        for a in np.arange(0,a_size,1):
-            for x in np.arange(0,x_size,1):
-                for x_d in np.arange(0,xdot_size,1):
-                    w[a,x,x_d] = w_ini          
+            plb.pause(1e-7)         
 
         # ============================ core SARSA(lambda) algo ============================
 
@@ -138,19 +135,67 @@ class Agent():
             plb.show()
             #plb.waitforbuttonpress(timeout=3)
             plb.close('all')
+            
+        return w, self.mc.t
 
-    def episodes(self, max_episodes=100, n_steps=3000, lambda_=0.95, tau=0.05, eta=0.01,
-                 w_ini=0, x_size=10, xdot_size=10, visualize=True):
-        """Runs multiple episodes with 1 agent"""
+    def episodes(self, max_episodes=100,
+                 n_steps=3000, lambda_=0.95, tau=0.05, eta=0.01, x_size=10, xdot_size=10, visualize=True,
+                 w_ini=0):
+        """ Runs multiple episodes with 1 agent
+        :param max_episodes: ...
+        :param n_step, lambda_, tau, eta, x_size, xdot_size, visualize: params of learn()
+        :param w_ini: initial weight "distribution"
+        """
+        
+        a_size = 3
+        # weight dictionary matrix (dim:x_size*xdot_size*a_size)
+        w = {}
+        for a in np.arange(0, a_size):
+            for x in np.arange(0, x_size):
+                for x_d in np.arange(0, xdot_size):
+                    w[a, x, x_d] = w_ini
 
+        esc_ts = []  # list to store escape times
         for n in range(max_episodes):
             print('\repisode =', n)           
-            self.learn(n_steps, lambda_, tau, eta, w_ini, x_size, xdot_size, visualize)
+            w_new, t = self.learn(w, n_steps, lambda_, tau, eta, x_size, xdot_size, visualize)
+            w = w_new  # just to make sure ...
+            esc_ts.append(t)
+            
+        return esc_ts
 
 
 if __name__ == "__main__":
-    a = Agent()
-    a.episodes(visualize=False)
+    eta = 0.01
+    x_sizes = [10]#[10, 20]
+    xdot_sizes = [10]#[10, 20]
+    w_inis = [0]#[0, 1]
+    taus = [0.05]#[0, 1, 1e10]
+    lambdas = [0.95]#[0, 0.95]
+    
+    for x_size in x_sizes:
+        for xdot_size in xdot_sizes:
+            for w_ini in w_inis:
+                for tau in taus:
+                    for lambda_ in lambdas:
+                        print("x_size:%s, xdot_size:%s, w_ini:%s, tau:%f, lambda:%f"%(x_size, xdot_size, w_ini, tau, lambda_))
+                        a = Agent()
+                        escape_times = a.episodes(max_episodes=100, n_steps=5000,
+                                                lambda_=lambda_, tau=tau, eta=eta,
+                                                x_size=x_size, xdot_size=xdot_size,
+                                                visualize=False,
+                                                w_ini=w_ini)
+    
+                        print("Escape times:", escape_times)
+                                     
+    print("##### Terminated #####")
+               
+    
+    
+    
+    
+    
+    
     
     
     
