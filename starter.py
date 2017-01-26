@@ -78,7 +78,7 @@ class DummyAgent(): #name to be changed later
         #input layer (place fields)
         x_size = 20
         xdot_size = 20
-        input_layer = np.zeros((x_size,xdot_size))
+        input_layer = np.zeros((x_size,xdot_size))        
 
         #output layer
         a_size = 3
