@@ -1,5 +1,6 @@
 """
 U&RL: Miniproject2 - Mountain Car problem "solved" with cont. state SARSA(lambda) algo
+this is a bit faster, clearer implementation with vectors, matricies and tensors
 Authors: Andras Ecker, Sharbatanu Chatterjee
 """
 
@@ -191,13 +192,13 @@ if __name__ == "__main__":
     # run 10 agents and average the runs:
     mult_esc_ts = []  # to store multiple escape times
     for i in range(0, 10):
-        a = Agent(x_size=20, xd_size=20, w_ini=0)
+        a = Agent(x_size=20, xd_size=20, w_ini=1)
         escape_times = a.episodes(max_episodes=150, n_steps=2000,
-                                  lambda_=0.95, tau=0.001, eta=0.01,
+                                  lambda_=0.95, tau=0.00001, eta=0.01,
                                   visualize=False)
         mult_esc_ts.append(escape_times)
                                   
-    plot_mult_escape_times(mult_esc_ts, tau=0.001, lambda_=0.95, x_size=20, xd_size=20, w_ini=0)
+    plot_mult_escape_times(mult_esc_ts, tau=0.00001, lambda_=0.95, x_size=20, xd_size=20, w_ini=1)
                                    
     print("##### Terminated #####")
     

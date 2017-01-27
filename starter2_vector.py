@@ -1,5 +1,6 @@
 """
 U&RL: Miniproject2 - Mountain Car problem "solved" with cont. state SARSA(lambda) algo
+this is a more result and plot oriented, here and there hard coded script
 Authors: Andras Ecker, Sharbatanu Chatterjee
 """
 
@@ -8,7 +9,6 @@ import sys
 import pylab as plb
 import mountaincar
 from figures import plot_escape_time, plot_mult_escape_times, plot_vectorfield
-import matplotlib.pyplot as plt
 
 
 class Agent():
@@ -159,17 +159,18 @@ class Agent():
         esc_ts = []  # list to store escape times
         for n in range(max_episodes):
             print("episode:%s"%n)           
-            #t, w_final = self.learn(n_steps, lambda_, tau, eta, visualize)  # updates self.weights based on SARSA rule
-            #=========uncomment below for decreasing tau============================ #
+            # decreasing tau version 
             t, w_final = self.learn(n_steps, lambda_, tau*np.exp(-n/15), eta, visualize)  # updates self.weights based on SARSA rule
             esc_ts.append(t)
 
+            # saving vector fields 
             if (n%20==0):
                 dummy = Agent(x_size=self.x_size, xd_size=self.xd_size,weights=w_final)
                 X = np.linspace(-150,30,num=dummy.x_size)
                 Y = np.linspace(-15,15,num=dummy.xd_size)
                 U=np.zeros((dummy.x_size,dummy.xd_size))
                 V=np.zeros((dummy.x_size,dummy.xd_size))
+                
                 for x in np.arange(0,dummy.x_size):
                     for xd in np.arange(0,dummy.xd_size):
                         dummy.mc.x = dummy.centers_x[0][x] 
@@ -189,27 +190,11 @@ if __name__ == "__main__":
     taus = [0.05]#[1e-5, 1., 100.]
     lambdas = [0.95]#[0, 0.95]
     
-    """
-    for x_size in x_sizes:
-        for xd_size in xd_sizes:
-            for w_ini in w_inis:
-                for tau in taus:
-                    for lambda_ in lambdas:
-                        print("x_size:%s, xd_size:%s, w_ini:%s, tau:%.5f, lambda:%.2f"%(x_size, xd_size, w_ini, tau, lambda_))
-                        
-                        a = Agent(x_size=x_size, xd_size=xd_size, w_ini=w_ini)
-                        escape_times = a.episodes(max_episodes=200, n_steps=5000,
-                                                lambda_=lambda_, tau=tau, eta=eta,
-                                                visualize=False)
-    
-                        print("Escape times:", escape_times)
-                        plot_escape_time(escape_times, tau, lambda_, x_size, xd_size, w_ini)
-    """
     # run 10 agents and average the runs:
     mult_esc_ts = []  # to store multiple escape times
     for i in range(0, 10):
         a = Agent(x_size=20, xd_size=20, w_ini=1)
-        escape_times = a.episodes(max_episodes=100, n_steps=2000,
+        escape_times = a.episodes(max_episodes=150, n_steps=2000,
                                   lambda_=0.95, tau=1, eta=0.01,
                                   visualize=False)
         mult_esc_ts.append(escape_times)

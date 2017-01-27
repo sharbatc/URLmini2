@@ -1,5 +1,6 @@
 """
 U&RL: Miniproject2 - Mountain Car problem "solved" with cont. state SARSA(lambda) algo
+this is an implementation with dictionaries
 Authors: Andras Ecker, Sharbatanu Chatterjee
 """
 
@@ -183,11 +184,11 @@ class Agent():
 
 if __name__ == "__main__":
     eta = 0.01
-    x_sizes = [10., 20.]#[10., 20.]
-    xd_sizes = [10., 20.]#[10., 20.]
-    w_inis = [0., 1.]#[0., 1.]
-    taus = [0.0001, 0.001]#[1e-5, 1., 100.]
-    lambdas = [0.95]#[0, 0.95]
+    x_sizes = [10., 20.]
+    xd_sizes = [10., 20.]
+    w_inis = [0., 1.]
+    taus = [0.0001, 0.001, 1.]
+    lambdas = [0, 0.95]
     
     for x_size in x_sizes:
         for xd_size in xd_sizes:
