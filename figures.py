@@ -19,7 +19,7 @@ for key, val in mplPars.items():
 
 
 def plot_escape_time(esc_ts, tau, lambda_, x_size, xd_size, w_ini):
-    """Plots escape time"""
+    """Plots escape times"""
     
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(1,1,1)
@@ -27,16 +27,17 @@ def plot_escape_time(esc_ts, tau, lambda_, x_size, xd_size, w_ini):
     ax.plot(esc_ts, linewidth=2)
     ax.set_title("Escape time (tau:%.5f, lambda:%.2f, x_size:%s, xd_size:%s, w_ini:%s)"%(tau, lambda_, x_size, xd_size, w_ini))
     ax.set_xlabel("#{episodes}")
+    ax.set_xlim([0, len(esc_ts)])
     ax.set_ylabel("Escape time: #{iteration}")
        
-    figName = "figures/esc_time__tau%.5f_lambda%.2f_x_size%s_xd_size%s_wini%s.jpg"%(tau, lambda_, x_size, xd_size, w_ini)
+    figName = "figures/esc_time__tau%.5f_lambda%.2f_x_size%s_xd_size%s_wini%s.png"%(tau, lambda_, x_size, xd_size, w_ini)
     fig.savefig(figName)
     print("figure saved to:", figName)
     plt.close()
     
     
 def plot_mult_escape_times(mult_esc_ts, tau, lambda_, x_size, xd_size, w_ini):
-    """Plots escape time"""
+    """Plots averaged escape times"""
     
     # convert multiple escape times to array (from list of lists)
     X = np.zeros((len(mult_esc_ts), len(mult_esc_ts[0])))
@@ -51,9 +52,10 @@ def plot_mult_escape_times(mult_esc_ts, tau, lambda_, x_size, xd_size, w_ini):
     ax.plot(avg_esc_t, linewidth=2)
     ax.set_title("Avg. escape time (tau:%.5f, lambda:%.2f, x_size:%s, xd_size:%s, w_ini:%s)"%(tau, lambda_, x_size, xd_size, w_ini))
     ax.set_xlabel("#{episodes}")
+    ax.set_xlim([0, len(mult_esc_ts[0])])
     ax.set_ylabel("Escape time (10 averaged): #{iteration}")
        
-    figName = "figures/avg_esc_time__tau%.5f_lambda%.2f_x_size%s_xd_size%s_wini%s.jpg"%(tau, lambda_, x_size, xd_size, w_ini)
+    figName = "figures/avg_esc_time__tau%.5f_lambda%.2f_x_size%s_xd_size%s_wini%s.png"%(tau, lambda_, x_size, xd_size, w_ini)
     fig.savefig(figName)
     print("figure saved to:", figName)
     plt.close()
