@@ -191,13 +191,13 @@ if __name__ == "__main__":
     # run 10 agents and average the runs:
     mult_esc_ts = []  # to store multiple escape times
     for i in range(0, 10):
-        a = Agent(x_size=20, xd_size=20, w_ini=1)
-        escape_times = a.episodes(max_episodes=250, n_steps=5000,
-                                  lambda_=0.95, tau=0.05, eta=0.01,
+        a = Agent(x_size=20, xd_size=20, w_ini=0)
+        escape_times = a.episodes(max_episodes=150, n_steps=2000,
+                                  lambda_=0.95, tau=0.001, eta=0.01,
                                   visualize=False)
         mult_esc_ts.append(escape_times)
                                   
-    plot_mult_escape_times(mult_esc_ts, tau=0.05, lambda_=0.95, x_size=20, xd_size=20, w_ini=1)
+    plot_mult_escape_times(mult_esc_ts, tau=0.001, lambda_=0.95, x_size=20, xd_size=20, w_ini=0)
                                    
     print("##### Terminated #####")
     

@@ -53,7 +53,7 @@ def plot_mult_escape_times(mult_esc_ts, tau, lambda_, x_size, xd_size, w_ini):
     ax.set_title("Avg. escape time (tau:%.5f, lambda:%.2f, x_size:%s, xd_size:%s, w_ini:%s)"%(tau, lambda_, x_size, xd_size, w_ini))
     ax.set_xlabel("#{episodes}")
     ax.set_xlim([0, len(mult_esc_ts[0])])
-    ax.set_ylabel("Escape time (10 averaged): #{iteration}")
+    ax.set_ylabel("Escape time (%s averaged): #{iteration}"%len(mult_esc_ts))
        
     figName = "figures/avg_esc_time__tau%.5f_lambda%.2f_x_size%s_xd_size%s_wini%s.png"%(tau, lambda_, x_size, xd_size, w_ini)
     fig.savefig(figName)
