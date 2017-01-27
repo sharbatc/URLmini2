@@ -13,7 +13,7 @@ from figures import plot_escape_time
 class Agent():
     """ A very clever agent for the mountain-car task """
 
-    def __init__(self, x_size, xd_size, w_ini, mc=None, parameter1=3.0, weights=None): #unchanged from given
+    def __init__(self, x_size, xd_size, w_ini, mc=None, parameter1=3.0, weights=None):
         
         if mc is None:
             self.mc = mountaincar.MountainCar()
@@ -51,9 +51,17 @@ class Agent():
         sum = 0
         for key, weight in self.weights.items():
             if key[0] == a:
-                sum += weight*self.calculate_r(key[1], key[2])  # key = (a, xj, xdj)
+                sum += weight * self.calculate_r(key[1], key[2])  # key = (a, xj, xdj)
 
         return sum
+        
+    def normalize(self, x):
+        """normalize input array with (x-mean)/std"""
+        
+        if np.std(x) != 0:
+            return (x - np.mean(x))/np.std(x)
+        else:
+            return x - np.mean(x)
         
     def softmax_policy(self, tau):
         """ Calculates probabilities based on Boltzmann distribution
@@ -64,12 +72,10 @@ class Agent():
         Qs[0] = self.calculate_Q(0)
         Qs[1] = self.calculate_Q(1)
         Qs[2] = self.calculate_Q(2)
-        Pa0 = np.exp(Qs[0] / tau)
-        Pa1 = np.exp(Qs[1] / tau)
-        Pa2 = np.exp(Qs[2] / tau)
-        P_tot = Pa0 + Pa1 + Pa2
+        Q_n = self.normalize([Qs[0]/tau, Qs[1]/tau, Qs[2]/tau])
+        p = np.exp(Q_n)
         
-        return Qs, [Pa0/P_tot, Pa1/P_tot, Pa2/P_tot]
+        return Qs, p/p.sum()
         
     def learn(self, n_steps=200, lambda_=0.95, tau=0.05, eta=0.01, visualize=True):
         """ SARSA(lambda) implementation (with softmax policy)
@@ -113,7 +119,7 @@ class Agent():
             
             #choose new action according to softmax policy
             Qs, p = self.softmax_policy(tau)
-            a_selected = np.random.choice([0,1,2],1,p)[0]
+            a_selected = np.random.choice([0,1,2], p=p)
 
             # calculate delta
             Q = Qs[a_selected]
@@ -149,7 +155,7 @@ class Agent():
             plb.close('all')
         
         """
-        # kind of debigging tool ...
+        # kind of debigging tool ... (hardcoded for 10*10 grid)
         print("some random e-values:", e[2,-50.,-15.], e[2,-90.,5.], e[0,-110.,5.], e[1,-110.,5.], e[2,-110.,5.],
               e[1,-130.,5.], e[0,-50.,-15.], e[0,-70.,5.], e[1,-70.,15.], e[2,-70.,15.])
         print("corresponding weights:", self.weights[2,-50.,-15.], self.weights[2,-90.,5.], self.weights[0,-110.,5.],
@@ -177,10 +183,10 @@ class Agent():
 
 if __name__ == "__main__":
     eta = 0.01
-    x_sizes = [10.]#[10., 20.]
-    xd_sizes = [10.]#[10., 20.]
+    x_sizes = [10., 20.]#[10., 20.]
+    xd_sizes = [10., 20.]#[10., 20.]
     w_inis = [0., 1.]#[0., 1.]
-    taus = [0.001]#[1e-5, 1., 100.]
+    taus = [0.0001, 0.001]#[1e-5, 1., 100.]
     lambdas = [0.95]#[0, 0.95]
     
     for x_size in x_sizes:
@@ -191,7 +197,7 @@ if __name__ == "__main__":
                         print("x_size:%s, xd_size:%s, w_ini:%s, tau:%.5f, lambda:%.2f"%(x_size, xd_size, w_ini, tau, lambda_))
                         
                         a = Agent(x_size=x_size, xd_size=xd_size, w_ini=w_ini)
-                        escape_times = a.episodes(max_episodes=250, n_steps=5000,
+                        escape_times = a.episodes(max_episodes=250, n_steps=3000,
                                                 lambda_=lambda_, tau=tau, eta=eta,
                                                 visualize=False)
     
