@@ -7,7 +7,7 @@ import numpy as np
 import sys
 import pylab as plb
 import mountaincar
-from figures import plot_escape_time
+from figures import plot_escape_time, plot_mult_escape_times
 
 
 class Agent():
@@ -63,7 +63,6 @@ class Agent():
             return (x - np.mean(x))/np.std(x)
         else:
             return x - np.mean(x)
-        
         
     def softmax_policy(self, tau):
         """ Calculates probabilities based on Boltzmann distribution
@@ -173,6 +172,7 @@ if __name__ == "__main__":
     taus = [0.05]#[1e-5, 1., 100.]
     lambdas = [0.95]#[0, 0.95]
     
+    """
     for x_size in x_sizes:
         for xd_size in xd_sizes:
             for w_ini in w_inis:
@@ -187,7 +187,18 @@ if __name__ == "__main__":
     
                         print("Escape times:", escape_times)
                         plot_escape_time(escape_times, tau, lambda_, x_size, xd_size, w_ini)
-                                     
+    """
+    # run 10 agents and average the runs:
+    mult_esc_ts = []  # to store multiple escape times
+    for i in range(0, 10):
+        a = Agent(x_size=20, xd_size=20, w_ini=1)
+        escape_times = a.episodes(max_episodes=250, n_steps=5000,
+                                  lambda_=0.95, tau=0.05, eta=0.01,
+                                  visualize=False)
+        mult_esc_ts.append(escape_times)
+                                  
+    plot_mult_escape_times(mult_esc_ts, tau=0.05, lambda_=0.95, x_size=20, xd_size=20, w_ini=1)
+                                   
     print("##### Terminated #####")
     
     
