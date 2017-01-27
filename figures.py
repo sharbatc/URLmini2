@@ -59,6 +59,19 @@ def plot_mult_escape_times(mult_esc_ts, tau, lambda_, x_size, xd_size, w_ini):
     fig.savefig(figName)
     print("figure saved to:", figName)
     plt.close()
+
+def plot_vectorfield(X,Y,U,V,num_episodes):
+    """Plots the vectorfield"""
+    fig = plt.figure(figsize=(10,8))
+    ax = fig.add_subplot(1,1,1)
+    ax.quiver(X,Y,U,V)
+    ax.set_title("Vector field for episode:%s"%(num_episodes))
+    ax.set_xlabel("Positions")
+    ax.set_ylabel("Velocities")
+    figName = "figures/vectorfield_episode%s.png"%(num_episodes)
+    fig.savefig(figName)
+    print("figure saved to:", figName)
+    plt.close()
     
     
 
